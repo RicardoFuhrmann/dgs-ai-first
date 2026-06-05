@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Análise Técnica RAG — NovaTech (Revisão v2)</title>
+  <style>
+    :root {
+      --primary: #1a3c5e;
+      --accent: #2e7dd6;
+      --accent-light: #e8f2fc;
+      --warn: #c0392b;
+      --warn-light: #fdf3f2;
+      --ok: #1a7a4a;
+      --ok-light: #eaf7ef;
+      --neutral: #f4f6f8;
+      --border: #d0d7de;
+      --text: #1c2226;
+      --text-muted: #5a6472;
+      --revision: #6b21a8;
+      --revision-light: #f5f3ff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: var(--text);
+      background: #fff;
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 2.5rem 3rem;
+    }
+    header .badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.2rem 0.6rem;
+      border-radius: 3px;
+      margin-bottom: 0.4rem;
+      margin-right: 0.4rem;
+    }
+    header .badge-revision {
+      background: #7c3aed;
+    }
+    header h1 { font-size: 1.9rem; font-weight: 700; margin-bottom: 0.4rem; }
+    header p { opacity: 0.8; font-size: 0.95rem; }
+    header .revision-note {
+      margin-top: 0.8rem;
+      font-size: 0.82rem;
+      background: rgba(124,58,237,0.2);
+      border: 1px solid rgba(124,58,237,0.4);
+      border-radius: 4px;
+      padding: 0.5rem 0.9rem;
+      opacity: 1;
+    }
+
+    /* ── LAYOUT ── */
+    .container { max-width: 960px; margin: 0 auto; padding: 0 2rem; }
+
+    /* ── NAV ── */
+    nav {
+      background: var(--neutral);
+      border-bottom: 1px solid var(--border);
+      padding: 0.8rem 3rem;
+      font-size: 0.82rem;
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+    }
+    nav a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+    nav a:hover { text-decoration: underline; }
+
+    /* ── SECTION ── */
+    section {
+      padding: 3rem 3rem 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-of-type { border-bottom: none; }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 0.4rem;
+    }
+    h2 {
+      font-size: 1.5rem;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--accent);
+      display: inline-block;
+    }
+    h3 {
+      font-size: 1.05rem;
+      color: var(--primary);
+      margin: 1.8rem 0 0.6rem;
+      font-weight: 700;
+    }
+    h4 {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin: 1.2rem 0 0.4rem;
+    }
+
+    p { margin-bottom: 0.9rem; }
+
+    ul, ol {
+      margin: 0.5rem 0 0.9rem 1.4rem;
+    }
+    li { margin-bottom: 0.35rem; }
+
+    /* ── SOURCE CARDS ── */
+    .source-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 1.2rem;
+      margin-top: 1rem;
+    }
+    .source-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .source-card .card-header {
+      background: var(--primary);
+      color: #fff;
+      padding: 0.7rem 1rem;
+      font-weight: 700;
+      font-size: 0.92rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .source-card .card-header .icon {
+      font-size: 1.1rem;
+    }
+    .source-card .card-body {
+      padding: 1rem;
+      background: #fff;
+    }
+    .card-body h4 { margin-top: 0.6rem; }
+    .card-body h4:first-child { margin-top: 0; }
+
+    /* ── CALLOUTS ── */
+    .callout {
+      border-radius: 6px;
+      padding: 0.9rem 1.1rem;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+    .callout-warn {
+      background: var(--warn-light);
+      border-left: 4px solid var(--warn);
+      color: #7a1a12;
+    }
+    .callout-info {
+      background: var(--accent-light);
+      border-left: 4px solid var(--accent);
+      color: #1a3c5e;
+    }
+    .callout-ok {
+      background: var(--ok-light);
+      border-left: 4px solid var(--ok);
+      color: #0f4e2e;
+    }
+    .callout-revision {
+      background: var(--revision-light);
+      border-left: 4px solid var(--revision);
+      color: #4c1d95;
+    }
+    .callout strong { display: block; margin-bottom: 0.3rem; }
+
+    /* ── CALC BOXES ── */
+    .calc-block {
+      background: var(--neutral);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1rem 1.2rem;
+      margin: 0.8rem 0;
+      font-size: 0.88rem;
+    }
+    .calc-block .calc-title {
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+    }
+    .calc-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.2rem 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .calc-line:last-child { border-bottom: none; font-weight: 700; }
+    .calc-line .label { color: var(--text-muted); }
+    .calc-line .value { font-family: 'Courier New', monospace; color: var(--primary); }
+    .calc-line.range-line .value { color: #92400e; }
+
+    /* ── BIG NUMBER ── */
+    .kpi-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin: 1.2rem 0;
+    }
+    .kpi {
+      flex: 1;
+      min-width: 160px;
+      background: var(--accent-light);
+      border: 1px solid #b3d4f5;
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .kpi .num {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1;
+    }
+    .kpi .label { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.3rem; }
+    .kpi.kpi-warn { background: var(--warn-light); border-color: #f5c6c2; }
+    .kpi.kpi-warn .num { color: var(--warn); }
+
+    /* ── TABLE ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.87rem;
+      margin: 0.8rem 0 1.2rem;
+    }
+    th {
+      background: var(--primary);
+      color: #fff;
+      padding: 0.55rem 0.8rem;
+      text-align: left;
+      font-weight: 600;
+    }
+    td {
+      padding: 0.5rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:nth-child(even) td { background: var(--neutral); }
+    tr.total td { background: #dbeafe; font-weight: 700; }
+    tr.total-conserv td { background: #fef3c7; font-weight: 700; }
+
+    /* ── STRATEGY PILLS ── */
+    .pill {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 20px;
+      margin: 0 0.1rem;
+    }
+    .pill-blue { background: #dbeafe; color: #1e40af; }
+    .pill-green { background: #d1fae5; color: #065f46; }
+    .pill-orange { background: #fef3c7; color: #92400e; }
+    .pill-red { background: #fee2e2; color: #991b1b; }
+    .pill-purple { background: #ede9fe; color: #5b21b6; }
+
+    /* ── CHUNKING TABLE ── */
+    .chunk-table th { background: #2e7dd6; }
+
+    /* ── RISK SECTION ── */
+    .risk-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 1.2rem;
+    }
+    .risk-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 680px) { .risk-grid, .risk-grid-2 { grid-template-columns: 1fr; } }
+    .risk-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .risk-card .risk-header {
+      padding: 0.6rem 0.9rem;
+      font-weight: 700;
+      font-size: 0.88rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .risk-high .risk-header { background: #fee2e2; color: var(--warn); }
+    .risk-med .risk-header  { background: #fef3c7; color: #92400e; }
+    .risk-low .risk-header  { background: #d1fae5; color: #065f46; }
+    .risk-card .risk-body {
+      padding: 0.8rem 0.9rem;
+      font-size: 0.85rem;
+      line-height: 1.5;
+    }
+
+    /* ── PHASE TIMELINE ── */
+    .phase-list { list-style: none; margin: 1rem 0 0; padding: 0; }
+    .phase-item {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+      align-items: flex-start;
+    }
+    .phase-badge {
+      min-width: 90px;
+      text-align: center;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 0.3rem 0.5rem;
+      border-radius: 4px;
+      line-height: 1.4;
+    }
+    .phase-content { flex: 1; font-size: 0.88rem; }
+    .phase-content strong { display: block; color: var(--primary); margin-bottom: 0.2rem; }
+
+    /* ── METRIC CARDS ── */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.8rem;
+      margin: 1rem 0;
+    }
+    @media (max-width: 700px) { .metric-grid { grid-template-columns: repeat(2, 1fr); } }
+    .metric-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.9rem;
+      text-align: center;
+      background: var(--neutral);
+    }
+    .metric-card .metric-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .metric-card .metric-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+      line-height: 1.4;
+    }
+    .metric-card .metric-target {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--ok);
+      margin-top: 0.4rem;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--neutral);
+      border-top: 1px solid var(--border);
+      padding: 1.5rem 3rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    code {
+      font-family: 'Courier New', monospace;
+      font-size: 0.85em;
+      background: var(--neutral);
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+
+    @media (max-width: 640px) {
+      section { padding: 2rem 1.2rem; }
+      header { padding: 1.8rem 1.2rem; }
+      nav { padding: 0.7rem 1.2rem; }
+      .source-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ HEADER -->
+<header>
+  <div class="badge">Análise Técnica · RAG Pipeline</div>
+  <div class="badge badge-revision">Revisão Crítica v2</div>
+  <h1>Assistente IA NovaTech — Análise de Arquitetura RAG</h1>
+  <p>Projeto: DGS AI First &nbsp;|&nbsp; DB1 Group &nbsp;|&nbsp; Data: 27 maio 2026 &nbsp;|&nbsp; Modelo-alvo: GPT-4o (128 K tokens)</p>
+  <p class="revision-note">
+    ⚠️ <strong>Revisão v2:</strong> Estimativas reavaliadas com intervalos realistas · Riscos adicionados: segurança/LGPD, embedding drift, avaliação de qualidade · Novos blocos: Avaliação RAG (Bloco 5), Segurança &amp; Conformidade (Bloco 6), Fases de Implementação.
+  </p>
+</header>
+
+<!-- ═══════════════════════════════════════════ NAV -->
+<nav>
+  <a href="#bloco1">Bloco 1 — Desafios de Ingestão</a>
+  <a href="#bloco2">Bloco 2 — Estimativa de Tokens</a>
+  <a href="#bloco3">Bloco 3 — Orçamento de Contexto</a>
+  <a href="#bloco4">Bloco 4 — Estratégia de Chunking</a>
+  <a href="#bloco5">Bloco 5 — Avaliação de Qualidade</a>
+  <a href="#bloco6">Bloco 6 — Segurança e Conformidade</a>
+  <a href="#sintese">Síntese &amp; Riscos</a>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════ BLOCO 1 -->
+<section id="bloco1">
+  <p class="section-label">Bloco 1</p>
+  <h2>Desafios de Ingestão por Tipo de Fonte</h2>
+
+  <p>
+    Cada tipo de fonte da NovaTech impõe obstáculos distintos ao pipeline RAG.
+    A tabela a seguir resume os pontos críticos; os cartões detalham cada dimensão.
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Fonte</th>
+        <th>Desafio-raiz</th>
+        <th>Impacto na resposta</th>
+        <th>Criticidade</th>
+        <th>Acurácia real estimada</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>PDFs com tabelas complexas</td>
+        <td>Perda de estrutura tabular no parse</td>
+        <td>Dados de frete truncados ou embaralhados</td>
+        <td><span class="pill pill-red">Alta</span></td>
+        <td>60–80% (tabelas sem bordas explícitas)</td>
+      </tr>
+      <tr>
+        <td>PDFs escaneados (OCR)</td>
+        <td>Texto inexistente — apenas pixels</td>
+        <td>Documento invisível ao retrieval</td>
+        <td><span class="pill pill-red">Alta</span></td>
+        <td>65–90% (depende da qualidade do scan)</td>
+      </tr>
+      <tr>
+        <td>Wiki Confluence (links + macros)</td>
+        <td>Contexto distribuído; HTML proprietário</td>
+        <td>Resposta incompleta sem páginas-filhas</td>
+        <td><span class="pill pill-orange">Média-Alta</span></td>
+        <td>85–95% (API REST com campos renderizados)</td>
+      </tr>
+      <tr>
+        <td>Planilhas Excel (fórmulas)</td>
+        <td>Valores computados ausentes; dimensão perdida</td>
+        <td>Cálculos incorretos ou impossíveis</td>
+        <td><span class="pill pill-orange">Média-Alta</span></td>
+        <td>90–98% (com <code>data_only=True</code>)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-revision">
+    <strong>⚠️ Advertência sobre acurácia de parsers</strong>
+    Os números de acurácia divulgados por fornecedores (Azure, Google) são medidos em benchmarks controlados com documentos limpos e formatação padrão. Em documentos corporativos reais — com carimbos sobrepostos, watermarks, fontes proprietárias, tabelas coloridas sem bordas explícitas e layouts mistos — a acurácia real costuma ser <strong>15–30 pontos percentuais abaixo</strong> dos valores de marketing. Planejar para o pior caso; validar com amostras reais antes de definir arquitetura.
+  </div>
+
+  <div class="source-grid">
+
+    <!-- CARD 1 -->
+    <div class="source-card">
+      <div class="card-header"><span class="icon">📊</span> PDFs com Tabelas Complexas (15+ colunas)</div>
+      <div class="card-body">
+        <h4>Desafio</h4>
+        <p>Parsers PDF padrão (PyMuPDF, pdfplumber) extraem texto linha a linha, destruindo a relação coluna → valor. Uma tabela de frete com 15 colunas e 80 linhas (=1.200 células) se torna uma sequência de tokens sem semântica posicional. Células mescladas e cabeçalhos multilinha ampliam o problema. <strong>Tabelas sem bordas explícitas</strong> (muito comuns em PDFs exportados do Excel) chegam a 40–60% de perda estrutural com parsers padrão.</p>
+
+        <h4>Impacto na qualidade</h4>
+        <ul>
+          <li>A pergunta "frete para cliente Tipo B, Região Sudeste, carga > 500 kg" exige cruzar três dimensões; sem estrutura tabular o modelo não consegue navegar corretamente.</li>
+          <li>Risco de alucinação: o LLM "inventa" um valor plausível quando os dados estão embaralhados.</li>
+          <li>Retrieval prejudicado: embeddings de texto desestruturado têm baixa precisão semântica para perguntas numéricas.</li>
+        </ul>
+
+        <h4>Estratégia de tratamento</h4>
+        <ul>
+          <li><strong>Parser especializado:</strong> <code>pdfplumber</code> com extração por bbox <em>somente para tabelas com bordas</em>; <code>Camelot</code> (lattice mode) para tabelas com linhas; <code>Azure Document Intelligence</code> para tabelas complexas/mistas — acurácia de <strong>75–90%</strong> em tabelas corporativas reais (não de marketing).</li>
+          <li><strong>Detecção automática de tipo de tabela:</strong> testar extração por lattice e stream; comparar número de células detectadas; usar resultado com maior estrutura como validação cruzada.</li>
+          <li><strong>Conversão para Markdown:</strong> cada tabela vira um bloco <code>| col1 | col2 | … |</code> antes de ser chunkeada; o LLM interpreta Markdown tabular nativamente.</li>
+          <li><strong>Chunk por tabela inteira:</strong> não quebrar tabelas no meio; manter cada tabela como um único chunk (mesmo que ultrapasse 500 tokens — ver Bloco 4).</li>
+          <li><strong>Metadados enriquecidos:</strong> tag <code>tipo=tabela_frete</code>, <code>num_colunas=15</code>, <code>pagina=3</code>, <code>parser_usado</code>, <code>confianca_extracao</code> para filtrar antes do retrieval.</li>
+          <li><strong>Validação com golden samples:</strong> extrair manualmente 10–15 tabelas representativas; comparar com saída do parser; ajustar estratégia antes de processar os 800 PDFs.</li>
+        </ul>
+
+        <h4>Segurança / Acesso</h4>
+        <p>Tabelas de frete podem conter valores contratuais sigilosos por cliente. Verificar se há documentos com restrição de acesso no SharePoint antes de ingerir — ver Bloco 6.</p>
+      </div>
+    </div>
+
+    <!-- CARD 2 -->
+    <div class="source-card">
+      <div class="card-header"><span class="icon">🔍</span> PDFs Escaneados (OCR necessário)</div>
+      <div class="card-body">
+        <h4>Desafio</h4>
+        <p>Documentos escaneados são imagens; não há texto extraível. O pipeline padrão de PDF → texto retorna vazio ou ruído. Qualidade da digitalização (DPI, inclinação, manchas) varia enormemente, afetando a acurácia do OCR. <strong>Na prática, documentos corporativos brasileiros escaneados apresentam 65–85% de acurácia por página</strong>, não os 85–98% dos benchmarks de fornecedores — esses assumem documentos limpos em inglês.</p>
+
+        <h4>Impacto na qualidade</h4>
+        <ul>
+          <li>Documentos inteiros ausentes do índice vetorial — o assistente responde "não encontrei informações" para conteúdo que existe.</li>
+          <li>OCR com baixa qualidade introduz tokens corrompidos (<em>"frefe" por "frete"</em>), degradando embeddings e retrieval.</li>
+          <li>Fluxogramas/imagens incorporadas permanecem opacos mesmo com OCR textual.</li>
+          <li><strong>Efeito silencioso:</strong> o sistema parece funcionar, mas responde com lacunas desconhecidas — erros que não aparecem como erros óbvios.</li>
+        </ul>
+
+        <h4>Estratégia de tratamento</h4>
+        <ul>
+          <li><strong>Pipeline OCR dedicado:</strong> <code>Azure AI Document Intelligence</code> ou <code>Google Document AI</code>; selecionar por amostragem em documentos reais da NovaTech antes de escolher.</li>
+          <li><strong>Pré-processamento de imagem:</strong> deskew + denoising com <code>OpenCV</code> antes do OCR para documentos de baixa qualidade.</li>
+          <li><strong>Confiança mínima por token:</strong> definir threshold ≥ 0,80; chunks abaixo recebem flag <code>ocr_quality=low</code> e são tratados com cuidado extra no prompt (<em>"informação extraída de documento de baixa qualidade — confirme com a equipe"</em>).</li>
+          <li><strong>Auditoria inicial obrigatória:</strong> antes de indexar, gerar relatório de confiança OCR por documento. Documentos com &lt;70% de confiança média devem ser revisados manualmente ou re-escaneados antes da ingestão.</li>
+          <li><strong>Fluxogramas:</strong> usar GPT-4o com visão para descrever a imagem em texto antes de indexar.</li>
+          <li><strong>Revisão humana periódica:</strong> listar documentos com confiança baixa para revisão trimestral.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- CARD 3 -->
+    <div class="source-card">
+      <div class="card-header"><span class="icon">📚</span> Wiki Confluence (links internos + macros)</div>
+      <div class="card-body">
+        <h4>Desafio</h4>
+        <p>Uma página Confluence pode ser um sumário que referencia 10 sub-páginas via links internos. As macros customizadas (ex.: <code>jira-issues</code>, <code>expand</code>, <code>status</code>) são renderizadas dinamicamente — o HTML bruto exportado contém tags proprietárias sem conteúdo textual. Se cada página for ingerida isoladamente, o contexto fica fragmentado. <strong>Em ambientes enterprise, a API REST do Confluence pode exigir aprovação de admin e ter rate limits baixos</strong> — fator operacional frequentemente ignorado.</p>
+
+        <h4>Impacto na qualidade</h4>
+        <ul>
+          <li>Pergunta "qual o procedimento completo de reclamação?" retorna apenas o trecho da página-pai, ignorando os detalhes nas páginas-filhas.</li>
+          <li>Macros não renderizadas geram lixo textual que polui embeddings.</li>
+          <li>Links internos quebram após exportação, impossibilitando rastreamento de fonte.</li>
+        </ul>
+
+        <h4>Estratégia de tratamento</h4>
+        <ul>
+          <li><strong>API Confluence REST v2:</strong> extrair conteúdo renderizado (campo <code>body.storage</code> + <code>body.view</code>), não o HTML bruto.</li>
+          <li><strong>Grafo de páginas:</strong> ao ingerir, rastrear <code>parent_id</code> e <code>child_pages</code>; incluir contexto da página-pai no metadata de cada chunk filho (<code>parent_title</code>, <code>parent_url</code>).</li>
+          <li><strong>GraphRAG para hierarquia profunda:</strong> para espaços Confluence com hierarquia de 3+ níveis, considerar abordagem de knowledge graph (Microsoft GraphRAG) para navegação multi-hop entre páginas relacionadas — especialmente eficaz para "qual o processo completo de X?" que atravessa múltiplas páginas.</li>
+          <li><strong>Stripping de macros:</strong> pipeline de limpeza com regex + BeautifulSoup para remover tags Confluence.</li>
+          <li><strong>Chunking hierárquico:</strong> dividir por seção H2/H3, mantendo breadcrumb no início de cada chunk (<em>"Procedimentos &gt; Reclamações &gt; Carga Danificada"</em>).</li>
+          <li><strong>Webhook de atualização:</strong> usar para re-ingestão incremental; validar com admin de TI que webhooks estão liberados no ambiente enterprise da NovaTech antes de incluir no plano.</li>
+        </ul>
+
+        <h4>Segurança / Acesso</h4>
+        <p>Espaços Confluence têm permissões granulares. Ingerir um espaço inteiro pode trazer conteúdo restrito a determinados grupos. Mapear permissões antes da ingestão — ver Bloco 6.</p>
+      </div>
+    </div>
+
+    <!-- CARD 4 -->
+    <div class="source-card">
+      <div class="card-header"><span class="icon">📋</span> Planilhas Excel (fórmulas interdependentes)</div>
+      <div class="card-body">
+        <h4>Desafio</h4>
+        <p>O RAG trabalha com texto; fórmulas Excel (<code>=VLOOKUP(A2, TabelaFrete!$A:$F, 3, FALSE)</code>) são procedimentos computacionais, não dados. Ao exportar para texto/CSV, a fórmula aparece literalmente — sem o valor calculado. Em planilhas com 50 abas e fórmulas interdependentes, o valor de uma célula pode depender de 5 outras abas. <strong>Usar <code>openpyxl data_only=True</code> só funciona se o arquivo foi salvo com valores calculados</strong> — planilhas abertas e modificadas mas não salvas corretamente no Excel retornam <code>None</code> em vez do valor.</p>
+
+        <h4>Impacto na qualidade</h4>
+        <ul>
+          <li>O LLM não consegue executar fórmulas; responde com o texto da fórmula em vez do resultado — completamente inútil para o usuário.</li>
+          <li>Perda dimensional: uma tabela 2D (linhas × colunas) vira uma sequência linear, perdendo a relação cruzada essencial para cálculos de frete.</li>
+          <li>Desatualização: planilhas atualizadas mensalmente sem re-ingestão automática geram respostas baseadas em dados obsoletos.</li>
+        </ul>
+
+        <h4>Estratégia de tratamento</h4>
+        <ul>
+          <li><strong>Exportar valores, não fórmulas:</strong> <code>xlwings</code> (abre o Excel real e lê valores calculados) é mais confiável que <code>openpyxl data_only=True</code> — este falha em planilhas não recalculadas antes do último save.</li>
+          <li><strong>Validação de valores:</strong> comparar saída do parser com células-amostra verificadas manualmente; alertar se % de células <code>None</code> > 5%.</li>
+          <li><strong>Conversão a Markdown tabular:</strong> cada aba relevante vira uma tabela Markdown com cabeçalhos de linha e coluna explícitos.</li>
+          <li><strong>Separação de abas por domínio:</strong> cada aba = um documento independente com metadata (<code>aba=TabelaFreteNacional</code>, <code>atualizado=2026-05</code>, <code>versao=3.2</code>).</li>
+          <li><strong>Tabelas de referência pequenas como contexto fixo:</strong> planilhas &lt;2.000 tokens injetadas diretamente no system prompt eliminam retrieval para dados estáticos.</li>
+          <li><strong>Pipeline de re-ingestão mensal:</strong> Microsoft Graph API para detectar versões novas no SharePoint e re-processar automaticamente — incluir notificação para equipe responsável confirmar que os dados foram atualizados corretamente.</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /source-grid -->
+</section>
+
+
+<!-- ═══════════════════════════════════════════ BLOCO 2 -->
+<section id="bloco2">
+  <p class="section-label">Bloco 2</p>
+  <h2>Estimativa de Tamanho da Base em Tokens</h2>
+
+  <p><strong>Premissa de conversão:</strong> 1 token ≈ 0,75 palavras → fator de multiplicação = <strong>1,333×</strong></p>
+
+  <div class="callout callout-revision">
+    <strong>🔄 Nota de revisão — Estimativas com intervalo realista</strong>
+    <p style="margin-top:0.4rem">A versão anterior usou premissas otimistas (250 palavras úteis/página de PDF). PDFs corporativos reais têm capas, sumários, páginas em branco, rodapés repetidos, imagens e gráficos que não geram tokens úteis. A revisão apresenta estimativa conservadora e otimista. <strong>Planejar para o caso conservador; dimensionar infraestrutura para o realista.</strong> Adicionalmente, os metadados enriquecidos recomendados no Bloco 1 adicionam ~15–20% ao volume de tokens no contexto — fator ausente no cálculo original.</p>
+  </div>
+
+  <h3>📄 Fonte 1 — PDFs (SharePoint)</h3>
+  <div class="calc-block">
+    <div class="calc-title">Cálculo PDFs — Otimista vs. Conservador</div>
+    <div class="calc-line">
+      <span class="label">Documentos</span><span class="value">800 docs</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Páginas por documento</span><span class="value">× 10 páginas</span>
+    </div>
+    <div class="calc-line range-line">
+      <span class="label">Palavras úteis por página (otimista / conservador)</span><span class="value">250 / 160 palavras</span>
+    </div>
+    <div class="calc-line range-line">
+      <span class="label">Total em palavras (otimista / conservador)</span><span class="value">2.000.000 / 1.280.000</span>
+    </div>
+    <div class="calc-line">
+      <span class="label"><strong>Total em tokens (PDFs)</strong></span><span class="value"><strong>≈ 2.666.667 / 1.706.667</strong></span>
+    </div>
+  </div>
+
+  <h3>📚 Fonte 2 — Wiki Confluence</h3>
+  <div class="calc-block">
+    <div class="calc-title">Cálculo Wiki</div>
+    <div class="calc-line">
+      <span class="label">Páginas</span><span class="value">400 páginas</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Palavras por página</span><span class="value">× 1.500 palavras</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Total em palavras</span><span class="value">= 600.000 palavras</span>
+    </div>
+    <div class="calc-line">
+      <span class="label"><strong>Total em tokens (Wiki)</strong></span><span class="value"><strong>≈ 800.000 tokens</strong></span>
+    </div>
+  </div>
+
+  <h3>📋 Fonte 3 — Planilhas Excel</h3>
+  <div class="calc-block">
+    <div class="calc-title">Cálculo Planilhas Excel — Otimista vs. Conservador</div>
+    <div class="calc-line">
+      <span class="label">Planilhas</span><span class="value">50 planilhas</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Abas relevantes por planilha</span><span class="value">× 5 abas</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Células úteis por aba</span><span class="value">× 1.200 células</span>
+    </div>
+    <div class="calc-line range-line">
+      <span class="label">Palavras/célula (otimista / conservador — inclui cabeçalhos repetidos)</span><span class="value">3 / 4 palavras</span>
+    </div>
+    <div class="calc-line range-line">
+      <span class="label">Total em palavras (otimista / conservador)</span><span class="value">900.000 / 1.200.000</span>
+    </div>
+    <div class="calc-line">
+      <span class="label"><strong>Total em tokens (Planilhas)</strong></span><span class="value"><strong>≈ 1.200.000 / 1.600.000</strong></span>
+    </div>
+  </div>
+
+  <h3>∑ Consolidado com Overhead de Metadados</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Fonte</th>
+        <th>Tokens (Otimista)</th>
+        <th>Tokens (Conservador)</th>
+        <th>% do Total (otimista)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>PDFs (SharePoint)</td>
+        <td>2.666.667</td>
+        <td>1.706.667</td>
+        <td>57%</td>
+      </tr>
+      <tr>
+        <td>Wiki (Confluence)</td>
+        <td>800.000</td>
+        <td>800.000</td>
+        <td>17%</td>
+      </tr>
+      <tr>
+        <td>Planilhas (Excel)</td>
+        <td>1.200.000</td>
+        <td>1.600.000</td>
+        <td>26%</td>
+      </tr>
+      <tr class="total">
+        <td>Subtotal</td>
+        <td><strong>4.666.667</strong></td>
+        <td><strong>4.106.667</strong></td>
+        <td>100%</td>
+      </tr>
+      <tr class="total-conserv">
+        <td>+ Overhead metadados (+17%)</td>
+        <td><strong>≈ 5.460.000</strong></td>
+        <td><strong>≈ 4.804.000</strong></td>
+        <td>—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="num">~4,7–5,5M</div>
+      <div class="label">tokens totais (intervalo realista)</div>
+    </div>
+    <div class="kpi kpi-warn">
+      <div class="num">36–43×</div>
+      <div class="label">vezes o limite do GPT-4o (128K)</div>
+    </div>
+    <div class="kpi">
+      <div class="num">~9.300–11.000</div>
+      <div class="label">chunks de 500 tokens na base</div>
+    </div>
+  </div>
+
+  <div class="callout callout-info">
+    <strong>Interpretação prática</strong>
+    A base tem entre <strong>36× e 43× o tamanho da janela de contexto do GPT-4o</strong>. O pipeline de retrieval seletivo é obrigatório. Com até ~11.000 chunks de 500 tokens, a qualidade do sistema depende diretamente da <strong>precisão do retrieval e da qualidade dos metadados</strong>: recuperar os 5–8 chunks certos entre 11.000 é o desafio central. O overhead de metadados — ignorado na v1 — adiciona ~17% ao volume total e deve ser considerado no dimensionamento do vector store e nos cálculos de custo.
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ BLOCO 3 -->
+<section id="bloco3">
+  <p class="section-label">Bloco 3</p>
+  <h2>Análise de Orçamento de Contexto</h2>
+
+  <h3>3.1 — Quantos chunks cabem por query?</h3>
+
+  <div class="calc-block">
+    <div class="calc-title">Janela disponível: caso típico (histórico moderado + metadados)</div>
+    <div class="calc-line">
+      <span class="label">Janela total GPT-4o</span><span class="value">128.000 tokens</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">(–) System prompt + instruções detalhadas</span><span class="value">– 3.000 tokens</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">(–) Histórico da conversa (moderado)</span><span class="value">– 2.000 tokens</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">(–) Pergunta do usuário + metadados dos chunks</span><span class="value">– 600 tokens</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">(–) Reserva para resposta gerada</span><span class="value">– 1.500 tokens</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Tokens disponíveis para chunks</span><span class="value">= 120.900 tokens</span>
+    </div>
+    <div class="calc-line">
+      <span class="label"><strong>Chunks de 500 tokens cabem (caso típico)</strong></span><span class="value"><strong>≈ 241 chunks</strong></span>
+    </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <strong>⚠️ Não confundir capacidade técnica com qualidade</strong>
+    Embora ~241 chunks <em>caibam</em> na janela do GPT-4o, inserir esse volume <strong>degradaria drasticamente</strong> a qualidade das respostas. Ver seção 3.2.
+  </div>
+
+  <h3>3.2 — O fenômeno <em>Lost in the Middle</em></h3>
+
+  <div class="callout callout-revision">
+    <strong>🔄 Nota de revisão — Nuance sobre o estudo original</strong>
+    <p style="margin-top:0.4rem">Liu et al. (2023) estudou modelos como GPT-3.5-turbo e Claude 2.1 — arquiteturas com limitações de atenção que o GPT-4o endereça parcialmente. Testes com GPT-4o mostram degradação menos severa no meio do contexto em relação aos modelos originais do estudo. Isso <strong>não elimina</strong> o fenômeno, mas significa que o limite de 5–8 chunks deve ser tratado como otimização de qualidade e custo, não como barreira técnica rígida. Para consultas analíticas complexas, 12–15 chunks cuidadosamente selecionados podem ser justificáveis.</p>
+  </div>
+
+  <p>
+    Modelos LLMs de grande contexto têm desempenho de atenção <strong>não uniforme</strong> ao longo do contexto. O efeito é documentado e ainda relevante para GPT-4o, especialmente com contextos acima de 40K tokens:
+  </p>
+
+  <ul>
+    <li><strong>Posições inicial e final</strong> do contexto recebem maior atenção — o modelo se lembra bem do que está no início e no fim do prompt.</li>
+    <li><strong>Posições intermediárias</strong> sofrem queda de atenção em contextos longos — mais relevante acima de 20 chunks ou 10K+ tokens de retrieval.</li>
+    <li>Com GPT-4o, o ponto crítico parece estar em torno de 15–20 documentos (não 10–15 como nas pesquisas de 2023 com modelos anteriores).</li>
+  </ul>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nº de chunks enviados</th>
+        <th>Comportamento esperado do GPT-4o</th>
+        <th>Risco</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>3 – 5 chunks</td>
+        <td>Atenção uniforme; alta precisão na resposta</td>
+        <td><span class="pill pill-green">Baixo</span></td>
+      </tr>
+      <tr>
+        <td>6 – 10 chunks</td>
+        <td>Leve degradação em chunks intermediários; aceitável</td>
+        <td><span class="pill pill-green">Baixo-Médio</span></td>
+      </tr>
+      <tr>
+        <td>11 – 20 chunks</td>
+        <td>Chunks do meio sujeitos a menor atenção; custo cresce proporcionalmente</td>
+        <td><span class="pill pill-orange">Médio</span></td>
+      </tr>
+      <tr>
+        <td>20+ chunks</td>
+        <td>Degradação significativa; custo alto; latência aumentada</td>
+        <td><span class="pill pill-red">Alto</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.3 — Número ideal de chunks e adaptação por tipo de query</h3>
+
+  <div class="callout callout-ok">
+    <strong>✅ Recomendação: janela adaptativa de 5–12 chunks por query</strong>
+    <p style="margin-top:0.4rem">Queries simples/factuais → 5–8 chunks. Queries analíticas/comparativas → até 12 chunks com re-ranking rigoroso. O limite não deve ser fixo no código — deve ser parâmetro configurável por tipo de intent detectado na query.</p>
+  </div>
+
+  <p><strong>Estratégia de retrieval em dois estágios:</strong></p>
+  <ul>
+    <li><strong>Estágio 1 — Recall:</strong> recuperar 30–50 candidatos via busca híbrida (vetorial + BM25). Alta revocação, baixa precisão.</li>
+    <li><strong>Estágio 2 — Precision:</strong> re-ranker cross-encoder seleciona top 5–12 com maior relevância contextual.</li>
+    <li><strong>Re-ranker recomendado:</strong> <code>cross-encoder/ms-marco-MiniLM-L-6-v2</code> para latência baixa (~80ms/query) ou <code>cross-encoder/ms-marco-MiniLM-L-12-v2</code> para maior acurácia (~150ms). <strong>Para domínio logístico em português</strong>, avaliar fine-tuning com exemplos de queries reais após 2–3 semanas de uso.</li>
+    <li><strong>Busca híbrida:</strong> combinar vetorial (semântica, peso ~0.7) com BM25 (léxica, peso ~0.3); pesos ajustáveis via calibração em golden dataset. Ferramentas: Elasticsearch (BM25 nativo), Weaviate (hybrid search nativo), Qdrant (sparse + dense vectors).</li>
+    <li><strong>Posicionamento estratégico:</strong> chunk com maior score de re-ranking posicionado primeiro no contexto.</li>
+  </ul>
+
+  <h3>3.4 — Modelo de custo completo</h3>
+
+  <div class="callout callout-revision">
+    <strong>🔄 Nota de revisão — Custo total do sistema, não apenas GPT-4o</strong>
+    A v1 calculou apenas os tokens de entrada do LLM. Um sistema RAG em produção tem múltiplos componentes de custo.
+  </div>
+
+  <div class="calc-block">
+    <div class="calc-title">Estimativa de custo diário — 320 queries/dia, 60% com retrieval documental</div>
+    <div class="calc-line">
+      <span class="label">Queries documentais/dia</span><span class="value">≈ 192 queries</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">GPT-4o input (8 chunks × 500 tokens + overhead)</span><span class="value">~5.000 tokens/query → $0,038/query</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">GPT-4o output (resposta ~800 tokens)</span><span class="value">~$0,012/query</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Embedding (text-embedding-3-small, re-ingestão mensal)</span><span class="value">~$0,002/dia amortizado</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Re-ranking model (self-hosted ou API)</span><span class="value">~$0,001/query → $0,19/dia</span>
+    </div>
+    <div class="calc-line">
+      <span class="label">Vector store hosting (Qdrant cloud ou managed)</span><span class="value">~$2–8/dia conforme SLA</span>
+    </div>
+    <div class="calc-line">
+      <span class="label"><strong>Custo total estimado/dia</strong></span><span class="value"><strong>~$12–22/dia (~R$ 60–110/dia)</strong></span>
+    </div>
+  </div>
+
+  <h3>3.5 — Gerenciamento de histórico multi-turn</h3>
+
+  <p>Conversas longas com atendentes acumulam histórico rapidamente. Estratégias para controlar crescimento:</p>
+  <ul>
+    <li><strong>Sliding window:</strong> manter apenas as últimas N mensagens; simples mas perde contexto de início de conversa.</li>
+    <li><strong>Summarization progressiva:</strong> ao atingir 3.000 tokens de histórico, sumarizar as mensagens mais antigas em 300–500 tokens e continuar. <code>GPT-4o-mini</code> é custo-eficiente para sumarização.</li>
+    <li><strong>Message importance scoring:</strong> preservar mensagens com informações críticas confirmadas (ex.: "cliente confirmou CEP 04567-890") e comprimir smalltalk.</li>
+    <li><strong>Recomendação para NovaTech:</strong> sliding window de 8 turnos com sumarização das mensagens anteriores — cobre a maioria dos atendimentos (média de atendimento: 5–10 turnos).</li>
+  </ul>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ BLOCO 4 -->
+<section id="bloco4">
+  <p class="section-label">Bloco 4</p>
+  <h2>Recomendação de Estratégia de Chunking</h2>
+
+  <h3>4.1 — Tamanho ideal de chunk</h3>
+
+  <p>
+    As perguntas do usuário são <strong>factuais e específicas</strong> (prazo para região X, política para produto Z, procedimento para situação W).
+    Não são perguntas de síntese que requerem 10 páginas de contexto — requerem <em>o parágrafo ou a linha de tabela certa</em>.
+  </p>
+
+  <div class="callout callout-info">
+    <strong>Tamanho recomendado: 300 – 500 tokens por chunk</strong>
+    <ul style="margin-top:0.5rem">
+      <li><strong>300 tokens:</strong> para tabelas e planilhas (preservar linhas completas; evitar excesso de ruído)</li>
+      <li><strong>400–500 tokens:</strong> para texto narrativo (PDFs e wiki) — captura um parágrafo completo + contexto imediato</li>
+      <li><strong>Exceção:</strong> tabelas inteiras que ultrapassem 500 tokens devem ser mantidas como chunk único (até 1.000 tokens), priorizando integridade estrutural sobre tamanho uniforme</li>
+      <li><strong>Nota:</strong> chunks menores melhoram a precisão do embedding (menos diluição semântica) mas aumentam o número total de chunks e o custo de re-ranking. Balancear conforme calibração no golden dataset.</li>
+    </ul>
+  </div>
+
+  <h3>4.2 — Overlap entre chunks</h3>
+
+  <div class="callout callout-ok">
+    <strong>Overlap recomendado: 10–15% do tamanho do chunk</strong>
+    Para chunks de 400 tokens → overlap de 40–60 tokens (3–4 frases).
+  </div>
+
+  <h3>4.3 — Estratégia diferenciada por tipo de fonte</h3>
+
+  <table class="chunk-table">
+    <thead>
+      <tr>
+        <th>Fonte</th>
+        <th>Tipo de Chunking</th>
+        <th>Tamanho</th>
+        <th>Overlap</th>
+        <th>Tratamento especial</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>PDFs narrativos</strong><br>(manuais, políticas)</td>
+        <td>Semântico por parágrafo</td>
+        <td>400–500 tokens</td>
+        <td>50 tokens (~12%)</td>
+        <td>Preservar cabeçalho H1/H2 no metadata; não quebrar em meio a enumerações</td>
+      </tr>
+      <tr>
+        <td><strong>PDFs com tabelas</strong><br>(tabelas de frete)</td>
+        <td>Chunk por tabela inteira</td>
+        <td>Variável (até 1.000 tokens)</td>
+        <td>0 (tabelas não se dividem)</td>
+        <td>Converter para Markdown tabular; metadata: <code>tipo=tabela</code>, <code>num_linhas</code>, <code>num_colunas</code>, <code>parser_usado</code></td>
+      </tr>
+      <tr>
+        <td><strong>PDFs escaneados</strong><br>(pós-OCR)</td>
+        <td>Semântico (após limpeza OCR)</td>
+        <td>300–400 tokens</td>
+        <td>60 tokens (~18%)</td>
+        <td>Overlap maior compensa erros residuais de OCR; flag <code>ocr_quality</code> no metadata; threshold mínimo de confiança antes de indexar</td>
+      </tr>
+      <tr>
+        <td><strong>Wiki Confluence</strong><br>(procedimentos)</td>
+        <td>Hierárquico por seção (H2/H3)</td>
+        <td>400–500 tokens</td>
+        <td>40 tokens (~10%)</td>
+        <td>Breadcrumb no chunk; rastrear links filhos; considerar GraphRAG para hierarquias profundas</td>
+      </tr>
+      <tr>
+        <td><strong>Planilhas Excel</strong><br>(tabelas de dados)</td>
+        <td>Fixo por bloco de linhas</td>
+        <td>300 tokens</td>
+        <td>2–3 linhas de header repetido</td>
+        <td>Repetir cabeçalhos de coluna a cada chunk; metadata: <code>aba</code>, <code>versão</code>, <code>data_atualização</code>, <code>fonte_valores=calculado</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>4.4 — Mitigação do efeito <em>Lost in the Middle</em></h3>
+
+  <ol>
+    <li>
+      <strong>Chunks menores e mais precisos (300–500 tokens):</strong>
+      Alta densidade semântica por chunk → score de relevância mais alto no retrieval → mais chance do chunk certo ser selecionado e posicionado no início do contexto.
+    </li>
+    <li>
+      <strong>Janela adaptativa de chunks por query (5–12):</strong>
+      Para queries simples, 5–8 chunks eliminam a "zona de baixa atenção". Para queries analíticas, até 12 com re-ranking rigoroso.
+    </li>
+    <li>
+      <strong>Re-ranking + posicionamento por relevância:</strong>
+      Chunk com maior score de re-ranking posicionado primeiro no contexto. Estratégia de "sandwich": chunk mais relevante primeiro, segundo mais relevante por último, restantes no meio.
+    </li>
+  </ol>
+
+  <h3>4.5 — Chunking fixo, semântico ou hierárquico?</h3>
+
+  <div class="callout callout-info">
+    <strong>Recomendação: abordagem híbrida — semântico para texto, hierárquico para wiki, fixo por unidade para tabelas</strong>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Abordagem</th>
+        <th>Quando usar neste projeto</th>
+        <th>Vantagem</th>
+        <th>Limitação</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Fixo</strong><br>(N tokens com overlap)</td>
+        <td>PDFs escaneados pós-OCR; planilhas simples</td>
+        <td>Simples de implementar; previsível</td>
+        <td>Pode cortar no meio de uma frase crítica</td>
+      </tr>
+      <tr>
+        <td><strong>Semântico</strong><br>(por parágrafo/sentença)</td>
+        <td>PDFs narrativos (manuais, políticas)</td>
+        <td>Preserva unidades de significado; melhor embedding</td>
+        <td>Tamanho variável; mais complexo de implementar</td>
+      </tr>
+      <tr>
+        <td><strong>Hierárquico</strong><br>(seção → sub-seção → parágrafo)</td>
+        <td>Wiki Confluence; PDFs com estrutura clara de headings</td>
+        <td>Preserva contexto navegacional; suporta multi-hop</td>
+        <td>Depende de estrutura documental consistente</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>
+    Para implementação prática no projeto NovaTech, recomenda-se usar <strong>LangChain</strong> (com <code>RecursiveCharacterTextSplitter</code> para semântico, <code>MarkdownHeaderTextSplitter</code> para hierárquico) ou <strong>LlamaIndex</strong> (com <code>HierarchicalNodeParser</code>), que suportam todas as três abordagens com configuração por tipo de documento.
+  </p>
+
+  <h3>4.6 — Seleção do Vector Store</h3>
+
+  <div class="callout callout-revision">
+    <strong>🔄 Análise adicionada na revisão</strong>
+    A escolha do vector store impacta custo, latência, filtros por metadados e capacidade de hybrid search. Com ~10.000 chunks iniciais e crescimento esperado, considerar:
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Vector Store</th>
+        <th>Vantagem para NovaTech</th>
+        <th>Limitação</th>
+        <th>Custo</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>pgvector</strong><br>(PostgreSQL)</td>
+        <td>Sem novo serviço se já há Postgres; SQL familiar; LGPD simplificada</td>
+        <td>Performance cai em &gt;500K vetores; sem hybrid search nativo</td>
+        <td>Baixo (infra existente)</td>
+      </tr>
+      <tr>
+        <td><strong>Qdrant</strong><br>(self-hosted/cloud)</td>
+        <td>Sparse+dense nativo (hybrid); filtros de metadados eficientes; bom desempenho até 10M vetores</td>
+        <td>Novo serviço para operar; curva de aprendizado</td>
+        <td>Médio ($25–150/mês cloud)</td>
+      </tr>
+      <tr>
+        <td><strong>Weaviate</strong></td>
+        <td>Hybrid search integrado; GraphQL API; bom para Confluence hierárquico</td>
+        <td>Mais complexo; footprint maior</td>
+        <td>Médio-Alto</td>
+      </tr>
+      <tr>
+        <td><strong>Azure AI Search</strong></td>
+        <td>Integração nativa com Azure Document Intelligence e SharePoint; managed; LGPD Azure</td>
+        <td>Vendor lock-in; custo pode crescer com volume</td>
+        <td>Alto (mas simplifica arquitetura)</td>
+      </tr>
+    </tbody>
+  </table>
+  <p><strong>Recomendação:</strong> Para o contexto NovaTech (Azure SharePoint, Azure Document Intelligence), <strong>Azure AI Search</strong> reduz complexidade arquitetural significativamente — integração nativa com as fontes já utilizadas. Para maior flexibilidade/custo, <strong>Qdrant self-hosted</strong> é a alternativa mais equilibrada.</p>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ BLOCO 5 (NOVO) -->
+<section id="bloco5">
+  <p class="section-label">Bloco 5 — Adicionado na Revisão v2</p>
+  <h2>Avaliação de Qualidade do RAG</h2>
+
+  <div class="callout callout-revision">
+    <strong>🆕 Seção ausente na v1 — crítica para validar e manter o sistema</strong>
+    <p style="margin-top:0.4rem">Um sistema RAG sem framework de avaliação é um sistema cego: funciona (ou falha) sem que a equipe saiba em qual direção. A avaliação deve começar <strong>antes</strong> da produção (golden dataset) e continuar continuamente (monitoramento em produção).</p>
+  </div>
+
+  <h3>5.1 — Métricas fundamentais do RAG (Framework RAGAS)</h3>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-name">Faithfulness</div>
+      <div class="metric-desc">A resposta é fiel ao conteúdo dos chunks recuperados? (sem alucinação)</div>
+      <div class="metric-target">Meta: &gt; 0,85</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-name">Answer Relevancy</div>
+      <div class="metric-desc">A resposta responde de fato à pergunta feita?</div>
+      <div class="metric-target">Meta: &gt; 0,80</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-name">Context Precision</div>
+      <div class="metric-desc">Dos chunks recuperados, quantos são realmente relevantes?</div>
+      <div class="metric-target">Meta: &gt; 0,70</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-name">Context Recall</div>
+      <div class="metric-desc">Todos os chunks necessários para responder foram recuperados?</div>
+      <div class="metric-target">Meta: &gt; 0,75</div>
+    </div>
+  </div>
+
+  <h3>5.2 — Golden Dataset: pré-requisito para ir a produção</h3>
+
+  <p>
+    O golden dataset é um conjunto de perguntas com respostas corretas validadas manualmente pela equipe de negócio da NovaTech. É o único mecanismo confiável para saber se o sistema funciona <em>antes</em> de expor a atendentes reais.
+  </p>
+
+  <div class="callout callout-info">
+    <strong>Especificação do Golden Dataset</strong>
+    <ul style="margin-top:0.5rem">
+      <li><strong>Volume:</strong> 80–120 pares pergunta/resposta cobrindo os principais fluxos de atendimento (frete, SLAs, procedimentos, exceções)</li>
+      <li><strong>Distribuição:</strong> ~40% perguntas sobre tabelas/planilhas; ~35% sobre procedimentos (wiki); ~25% sobre políticas (PDFs)</li>
+      <li><strong>Tipos de pergunta:</strong> factuais simples, comparativas ("qual a diferença entre X e Y"), procedimentais ("como fazer X"), edge cases ("e se X não se aplicar?")</li>
+      <li><strong>Responsável:</strong> equipe de negócio + gestão de atendimento — não a equipe de TI</li>
+      <li><strong>Critério de aceitação para produção:</strong> Faithfulness &gt; 0,85 e Answer Relevancy &gt; 0,80 em todo o golden dataset</li>
+    </ul>
+  </div>
+
+  <h3>5.3 — Monitoramento contínuo em produção</h3>
+
+  <p><strong>O que registrar em cada query de produção:</strong></p>
+  <ul>
+    <li>Pergunta original (anonimizada/pseudonimizada conforme LGPD)</li>
+    <li>Chunks recuperados (IDs + scores de relevância)</li>
+    <li>Score do re-ranker para cada chunk</li>
+    <li>Resposta gerada</li>
+    <li>Feedback do usuário (thumbs up/down — ver 5.4)</li>
+    <li>Latência total e por etapa (retrieval, re-ranking, geração)</li>
+  </ul>
+
+  <p><strong>Alertas automáticos para:</strong></p>
+  <ul>
+    <li>Taxa de respostas "não encontrei informação" &gt; 15% (possível gap de cobertura na ingestão)</li>
+    <li>Score médio de relevância dos chunks caindo &gt;10% em relação à baseline (possível degradação do pipeline)</li>
+    <li>Latência p95 &gt; 8 segundos por query</li>
+    <li>Taxa de feedback negativo &gt; 20%</li>
+  </ul>
+
+  <h3>5.4 — Loop de feedback e melhoria contínua</h3>
+
+  <ul>
+    <li><strong>Feedback inline:</strong> botão 👍/👎 ao final de cada resposta do assistente; opção de comentário livre para 👎.</li>
+    <li><strong>Análise semanal:</strong> revisar todas as queries com feedback negativo; identificar padrões (tipo de fonte, tipo de pergunta, horário).</li>
+    <li><strong>Ciclo de melhoria:</strong> chunks com baixo feedback → revisar ingestão da fonte → re-ingerir → re-testar no golden dataset → publicar nova versão.</li>
+    <li><strong>Versionamento do índice:</strong> manter versão anterior do índice vetorial por 30 dias para rollback em caso de regressão.</li>
+  </ul>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ BLOCO 6 (NOVO) -->
+<section id="bloco6">
+  <p class="section-label">Bloco 6 — Adicionado na Revisão v2</p>
+  <h2>Segurança, LGPD e Conformidade</h2>
+
+  <div class="callout callout-revision">
+    <strong>🆕 Seção ausente na v1 — requisito não-funcional crítico em ambiente corporativo</strong>
+    <p style="margin-top:0.4rem">A documentação da NovaTech pode conter dados pessoais de clientes (em documentos de reclamação, histórico de entregas), valores contratuais sigilosos e informações operacionais sensíveis. A ingestão indiscriminada dessas fontes em um vector store cria riscos de conformidade que devem ser tratados antes do desenvolvimento.</p>
+  </div>
+
+  <h3>6.1 — Mapeamento de dados sensíveis por fonte</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Fonte</th>
+        <th>Dados potencialmente sensíveis</th>
+        <th>Risco LGPD</th>
+        <th>Ação recomendada</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>PDFs (SharePoint)</td>
+        <td>CPF/CNPJ de clientes em documentos de reclamação, valores contratuais individualizados</td>
+        <td><span class="pill pill-red">Alto</span></td>
+        <td>Classificar documentos por nível de sensibilidade antes de ingerir; mascarar PII com NER antes de gerar embedding</td>
+      </tr>
+      <tr>
+        <td>Wiki Confluence</td>
+        <td>Procedimentos internos de precificação, informações de fornecedores, dados de funcionários</td>
+        <td><span class="pill pill-orange">Médio</span></td>
+        <td>Mapear permissões de espaço/página na API; ingerir apenas conteúdo acessível ao perfil "atendente"</td>
+      </tr>
+      <tr>
+        <td>Planilhas Excel</td>
+        <td>Valores de contrato por cliente, margens, acordos especiais</td>
+        <td><span class="pill pill-red">Alto</span></td>
+        <td>Identificar abas com dados contratuais individuais; não ingerir ou anonimizar antes da ingestão</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>6.2 — Controle de acesso no vector store</h3>
+
+  <p>Um atendente de nível 1 não deve ter acesso via assistente a documentos restritos a gestores ou diretoria. Estratégias:</p>
+  <ul>
+    <li><strong>Metadados de permissão:</strong> adicionar campo <code>nivel_acesso</code> (ex.: <code>publico</code>, <code>atendente</code>, <code>supervisor</code>, <code>restrito</code>) em cada chunk durante a ingestão, baseado nas permissões do documento de origem.</li>
+    <li><strong>Filtro obrigatório no retrieval:</strong> toda query deve incluir filtro <code>nivel_acesso IN (perfis_do_usuario)</code> antes da busca vetorial — não após. Buscar primeiro e filtrar depois expõe chunks indevidos ao ranking.</li>
+    <li><strong>Auditoria de acesso:</strong> registrar qual usuário consultou quais chunks; relatório mensal para DPO (Data Protection Officer).</li>
+  </ul>
+
+  <h3>6.3 — Proteção de PII antes do embedding</h3>
+
+  <ul>
+    <li><strong>Detecção de PII:</strong> usar NER (Named Entity Recognition) para identificar CPF, CNPJ, e-mail, telefone, endereço antes da ingestão. Bibliotecas: <code>presidio-analyzer</code> (Microsoft, open-source) ou <code>spaCy</code> com modelo treinado para português.</li>
+    <li><strong>Mascaramento ou exclusão:</strong> substituir PII por tokens genéricos (<em>"[CPF_CLIENTE]"</em>, <em>"[EMAIL]"</em>) ou excluir o documento da base conforme política de dados.</li>
+    <li><strong>Retenção:</strong> definir política de quanto tempo embeddings ficam no vector store; excluir chunks de documentos expirados ou revogados.</li>
+  </ul>
+
+  <h3>6.4 — Residência de dados e conformidade Azure</h3>
+
+  <p>
+    Dado que a NovaTech já usa Azure (SharePoint, Document Intelligence), a arquitetura deve priorizar serviços <strong>Azure Brazil South</strong> ou <strong>Azure East US 2</strong> com data residency configurada para atender à LGPD (dados pessoais de cidadãos brasileiros). Evitar rodar embeddings ou armazenar chunks em regiões fora do escopo do acordo de processamento de dados com a Azure.
+  </p>
+
+  <div class="callout callout-warn">
+    <strong>⚠️ Ação antes de iniciar o desenvolvimento</strong>
+    Engajar o DPO (ou jurídico) da NovaTech para classificar as fontes documentais por nível de sensibilidade. Sem essa classificação, a ingestão pode criar passivo de conformidade que exige retrabalho completo na camada de acesso.
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════ SÍNTESE -->
+<section id="sintese">
+  <p class="section-label">Síntese Final</p>
+  <h2>Riscos Técnicos, Mitigações e Fases de Implementação</h2>
+
+  <p>
+    A análise revela uma base documental tecnicamente heterogênea (~4,7–5,5M tokens) com seis riscos que, se não tratados, comprometem a viabilidade ou a conformidade do assistente independentemente da qualidade do LLM escolhido.
+  </p>
+
+  <div class="risk-grid">
+
+    <div class="risk-card risk-high">
+      <div class="risk-header">🔴 Risco 1 — Alta</div>
+      <div class="risk-body">
+        <strong>Perda de estrutura em tabelas e planilhas</strong>
+        <p>As perguntas mais críticas do atendimento dependem das fontes mais difíceis de ingerir: tabelas PDF e planilhas Excel. Acurácia real de parsers em documentos corporativos é 15–30% abaixo dos valores de marketing.</p>
+        <p><strong>Mitigação:</strong> Validar parsers com golden samples reais antes de escolher. Azure Document Intelligence + conversão Markdown + chunking por tabela + exportação de valores calculados (não fórmulas).</p>
+      </div>
+    </div>
+
+    <div class="risk-card risk-high">
+      <div class="risk-header">🔴 Risco 2 — Alta</div>
+      <div class="risk-body">
+        <strong>Alucinação por retrieval impreciso</strong>
+        <p>Com 9.300–11.000 chunks na base, enviar chunks irrelevantes ao LLM gera respostas incorretas com aparência de confiança — especialmente perigoso para valores de frete e prazos.</p>
+        <p><strong>Mitigação:</strong> Retrieval em dois estágios (busca híbrida → re-ranking cross-encoder); janela adaptativa de 5–12 chunks; posicionamento do chunk mais relevante primeiro.</p>
+      </div>
+    </div>
+
+    <div class="risk-card risk-high">
+      <div class="risk-header">🔴 Risco 3 — Alta</div>
+      <div class="risk-body">
+        <strong>Ausência de framework de avaliação</strong>
+        <p>Ir a produção sem golden dataset e sem métricas RAGAS significa não saber se o sistema está funcionando ou falhando silenciosamente. Regressões serão detectadas por reclamações de usuários, não por alertas.</p>
+        <p><strong>Mitigação:</strong> Golden dataset (80–120 pares) validado pela equipe de negócio antes do go-live. RAGAS em CI/CD. Monitoramento contínuo com alertas de degradação.</p>
+      </div>
+    </div>
+
+    <div class="risk-card risk-med">
+      <div class="risk-header">🟡 Risco 4 — Média</div>
+      <div class="risk-body">
+        <strong>Segurança/LGPD e controle de acesso</strong>
+        <p>Ingestão de documentos com PII ou dados contratuais sigilosos sem classificação prévia cria passivo de conformidade. Atendentes podem acessar via assistente conteúdo restrito a supervisores.</p>
+        <p><strong>Mitigação:</strong> Classificação de documentos por nível de acesso antes da ingestão. Filtro obrigatório por perfil no retrieval. Mascaramento de PII com <code>presidio-analyzer</code>. Engajar DPO antes do desenvolvimento.</p>
+      </div>
+    </div>
+
+    <div class="risk-card risk-med">
+      <div class="risk-header">🟡 Risco 5 — Média</div>
+      <div class="risk-body">
+        <strong>Desatualização silenciosa da base</strong>
+        <p>Documentação atualizada mensalmente sem re-ingestão automática. Pior: após re-ingestão, chunks antigos e novos podem coexistir no índice gerando respostas contraditórias.</p>
+        <p><strong>Mitigação:</strong> Metadata <code>data_ingestão</code> + <code>versão</code> em todos os chunks. Pipeline incremental via Graph API + webhooks. Invalidação de chunks ao re-ingerir documento — nunca apenas adicionar, sempre substituir.</p>
+      </div>
+    </div>
+
+    <div class="risk-card risk-med">
+      <div class="risk-header">🟡 Risco 6 — Média</div>
+      <div class="risk-body">
+        <strong>Embedding drift e lock-in de modelo</strong>
+        <p>Se o modelo de embedding for atualizado ou substituído, todos os ~10.000+ chunks precisam ser re-embedados para consistência. Sem planejamento, isso gera downtime ou inconsistências graves no retrieval.</p>
+        <p><strong>Mitigação:</strong> Registrar modelo de embedding e versão em metadata de cada chunk. Planejar janela de re-ingestão completa semestral. Manter modelo de embedding fixo por ao menos 6 meses após lançamento. Avaliar custo de re-embedding antes de atualizar.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>Fases de Implementação Recomendadas</h3>
+
+  <p>
+    O sucesso do projeto NovaTech depende da sequência correta: <strong>ingestão de qualidade primeiro</strong>, retrieval depois, interface por último. Ir rápido demais na interface antes de validar ingestão é o erro mais comum em projetos RAG.
+  </p>
+
+  <ul class="phase-list">
+    <li class="phase-item">
+      <div class="phase-badge">Semana 1–2<br>Fundação</div>
+      <div class="phase-content">
+        <strong>Classificação e auditoria documental</strong>
+        Mapear níveis de acesso. Amostrar 20–30 documentos de cada tipo. Validar parsers e OCR com amostras reais. Definir critérios de qualidade mínima para ingestão. Engajar DPO.
+      </div>
+    </li>
+    <li class="phase-item">
+      <div class="phase-badge">Semana 3–5<br>Ingestão</div>
+      <div class="phase-content">
+        <strong>Pipeline de ingestão e indexação</strong>
+        Implementar parsers por tipo de fonte. Pipeline OCR com scoring de confiança. Conversão para Markdown. Chunking híbrido por tipo. Metadados enriquecidos. Mascaramento de PII. Vector store configurado com filtros de acesso.
+      </div>
+    </li>
+    <li class="phase-item">
+      <div class="phase-badge">Semana 6<br>Baseline</div>
+      <div class="phase-content">
+        <strong>Golden dataset e métricas baseline</strong>
+        Construir 80–120 pares Q/A com equipe de negócio. Rodar RAGAS. Estabelecer métricas baseline. Identificar gaps críticos antes de avançar.
+      </div>
+    </li>
+    <li class="phase-item">
+      <div class="phase-badge">Semana 7–9<br>Retrieval</div>
+      <div class="phase-content">
+        <strong>Busca híbrida, re-ranking e orçamento de contexto</strong>
+        Implementar retrieval em dois estágios. Calibrar pesos BM25/vetorial. Fine-tune de re-ranker (opcional). Testes de qualidade contra golden dataset. Atingir critérios de aceitação antes de avançar.
+      </div>
+    </li>
+    <li class="phase-item">
+      <div class="phase-badge">Semana 10–12<br>Interface</div>
+      <div class="phase-content">
+        <strong>Interface, system prompt e rollout controlado</strong>
+        Design do system prompt para o domínio logístico. Integração com sistema de atendimento. Rollout para 5–10% dos atendentes. Monitoramento de feedback. Ajuste iterativo.
+      </div>
+    </li>
+  </ul>
+
+  <div class="callout callout-info" style="margin-top:1.5rem">
+    <strong>Conclusão arquitetural revisada</strong>
+    <p style="margin-top:0.4rem">
+      O projeto NovaTech é viável tecnicamente, mas seu sucesso depende de <strong>três investimentos proporcionalmente corretos</strong>: (1) ingestão de qualidade — 40% do esforço; (2) retrieval preciso com avaliação contínua — 35%; (3) interface e system prompt — 25%. Um LLM melhor com dados mal ingeridos e sem métricas de avaliação não atinge a meta de 12→2 minutos por chamado — e não há como saber que está falhando até o dano ser perceptível pelos atendentes. A camada de avaliação (<strong>Bloco 5</strong>) e segurança (<strong>Bloco 6</strong>), ausentes na análise original, são co-requisitos do projeto, não opcionais.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <span>Análise Técnica RAG — NovaTech · DB1 Group · DGS AI First</span>
+  <span>v1: 27 mai 2026 · Revisão v2: 27 mai 2026 · GPT-4o (128K) · Claude Sonnet 4.6</span>
+</footer>
+
+</body>
+</html>
