@@ -1,0 +1,40 @@
+Você é revisor de código sênior. O Tech Lead pediu a revisão deste módulo antes do merge. Ele foi gerado pelo GitHub Copilot para o projeto NovaTech Assistant (Azure Functions v4, TypeScript, assistente RAG de atendimento de uma empresa de logística). O código deveria estar em /src/functions/feedback/handler.ts.
+
+Regras do AGENTS.md do projeto (resumo): "TypeScript strict mode. Zod para validação de input. pino para logging (nunca console.log). Nunca logar dados pessoais (e-mail, nome). Imports estáticos no topo (nunca require dinâmico)."
+
+Liste TODOS os problemas que encontrar. Para cada um: número, trecho de código, classificação (violação do AGENTS.md, problema de segurança ou bug potencial), severidade (alta/média/baixa), por que é um problema neste projeto e a correção sugerida. Responda em português, em Markdown. Não reescreva o módulo inteiro.
+
+```typescript
+// feedback-handler.ts — gerado pelo Copilot
+import { app, HttpRequest, HttpResponseInit } from '@azure/functions';
+
+export async function feedbackHandler(
+  request: HttpRequest
+): Promise<HttpResponseInit> {
+  const body = await request.json() as any;
+
+  const feedback = {
+    queryId: body.queryId,
+    rating: body.rating,
+    comment: body.comment,
+    attendantEmail: body.attendantEmail,
+    timestamp: new Date().toISOString()
+  };
+
+  console.log('Feedback recebido:', JSON.stringify(feedback));
+
+  const { CosmosClient } = require('@azure/cosmos');
+  const client = new CosmosClient(process.env.COSMOS_CONNECTION_STRING);
+  const database = client.database('novatech');
+  const container = database.container('feedbacks');
+
+  await container.items.create(feedback);
+
+  return { status: 200, body: 'OK' };
+}
+
+app.http('feedback', {
+  methods: ['POST'],
+  handler: feedbackHandler
+});
+```
