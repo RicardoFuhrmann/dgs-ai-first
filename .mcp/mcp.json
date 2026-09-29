@@ -1,0 +1,46 @@
+{
+  "mcpServers": {
+    "fs-workspace": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--network=none",
+        "--mount", "type=bind,src=${PWD}/src,dst=/projects/src",
+        "--mount", "type=bind,src=${PWD}/specs,dst=/projects/specs",
+        "--mount", "type=bind,src=${PWD}/skills,dst=/projects/skills",
+        "--mount", "type=bind,src=${PWD}/tests,dst=/projects/tests",
+        "--mount", "type=bind,src=${PWD}/prompts,dst=/projects/prompts",
+        "mcp/filesystem@sha256:35fcf0217ca0d5bf7b0a5bd68fb3b89e08174676c0e0b4f431604512cf7b3f67",
+        "/projects"
+      ]
+    },
+    "fs-knowledge": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--network=none",
+        "--mount", "type=bind,src=${PWD}/docs/novatech,dst=/projects/docs/novatech,ro",
+        "--mount", "type=bind,src=${PWD}/data/retrieval-corpus,dst=/projects/data/retrieval-corpus,ro",
+        "mcp/filesystem@sha256:35fcf0217ca0d5bf7b0a5bd68fb3b89e08174676c0e0b4f431604512cf7b3f67",
+        "/projects"
+      ]
+    },
+    "git": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", "--network=none",
+        "-e", "GIT_CONFIG_COUNT=1",
+        "-e", "GIT_CONFIG_KEY_0=safe.directory",
+        "-e", "GIT_CONFIG_VALUE_0=/repo",
+        "--mount", "type=bind,src=${PWD},dst=/repo,ro",
+        "mcp/git@sha256:ad6af958e79466a14b895891e772fdda28fdc12c06fff4a70637b66773303a2c",
+        "--repository", "/repo"
+      ]
+    },
+    "memory": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-memory@2026.8.31"],
+      "env": {
+        "MEMORY_FILE_PATH": "${PWD}/.mcp/memory/novatech-memory.jsonl"
+      }
+    }
+  }
+}

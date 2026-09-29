@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "deny": [
+      "mcp__fs-knowledge__write_file",
+      "mcp__fs-knowledge__edit_file",
+      "mcp__fs-knowledge__create_directory",
+      "mcp__fs-knowledge__move_file",
+      "mcp__git__git_add",
+      "mcp__git__git_commit",
+      "mcp__git__git_reset",
+      "mcp__git__git_checkout",
+      "mcp__git__git_create_branch",
+      "mcp__git__git_init",
+      "Edit(/docs/novatech/**)",
+      "Write(/docs/novatech/**)",
+      "Edit(/data/retrieval-corpus/**)",
+      "Write(/data/retrieval-corpus/**)",
+      "Read(/.env)",
+      "Read(/**/.env)",
+      "Read(/**/local.settings.json)"
+    ],
+    "ask": [
+      "mcp__fs-workspace__write_file",
+      "mcp__fs-workspace__edit_file",
+      "mcp__fs-workspace__move_file",
+      "mcp__memory__delete_entities",
+      "mcp__memory__delete_observations",
+      "mcp__memory__delete_relations"
+    ]
+  }
+}
