@@ -4,13 +4,21 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "start": "func start",
     "test": "vitest run",
     "lint": "eslint .",
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit"
   },
   "devDependencies": {
+    "@types/node": "^22.20.4",
     "typescript": "^5.5.0",
-    "vitest": "^2.0.0",
-    "zod": "^3.23.0"
-  }
+    "vitest": "^2.0.0"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.16.5",
+    "pino": "^10.3.1",
+    "zod": "^3.25.76"
+  },
+  "main": "dist/src/functions/*/handler.js"
 }
