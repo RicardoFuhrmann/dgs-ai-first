@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ErrorDetail } from "../../shared/errors.js";
+import { toErrorDetails, type ErrorDetail } from "../../shared/errors.js";
 
 // ADR-0002: histórico limitado a 3 turnos.
 export const MAX_HISTORY_TURNS = 3;
@@ -48,9 +48,6 @@ export function validateQueryRequest(body: unknown): ValidationResult {
   }
   return {
     success: false,
-    details: result.error.issues.map((issue) => ({
-      path: issue.path.join(".") || "(body)",
-      message: issue.message,
-    })),
+    details: result.error.issues.flatMap(toErrorDetails),
   };
 }

@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { app, type HttpRequest, type HttpResponseInit, type InvocationContext } from "@azure/functions";
 import { errorBody } from "../../shared/errors.js";
 import { logger as defaultLogger, type Logger } from "../../shared/logger.js";
+import { REQUEST_ID_PATTERN } from "../../shared/request-id.js";
 import { validateQueryRequest, type QueryRequest } from "./validator.js";
 
 export interface AnswerQueryResult {
@@ -23,8 +24,6 @@ export interface QueryHandlerDeps {
 }
 
 // Reaproveita o id vindo do bot/painel para correlação, mas só se for seguro de logar.
-const REQUEST_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
-
 function resolveRequestId(request: HttpRequest): string {
   const incoming = request.headers.get("x-request-id");
   return incoming && REQUEST_ID_PATTERN.test(incoming) ? incoming : randomUUID();
