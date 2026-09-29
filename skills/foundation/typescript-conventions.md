@@ -72,7 +72,8 @@ Verificar: `grep -rnE "\w!(\.|\[|\))" src` e revisão de todo `as` em `src/` (`a
 Verificar: `grep -rnE "^\s*(export )?(const )?enum " src tests` não retorna nada.
 
 **TS-11 — MUST** usar uniões discriminadas para resultados que podem falhar, com o discriminante `success` (o mesmo padrão do `safeParse`): `{ success: true; data: T } | { success: false; details: ErrorDetail[] }`. Quem consome faz o narrowing pelo discriminante, sem cast.
-Verificar: revisão. Nenhuma função de validação retorna `T | null` ou lança para sinalizar entrada inválida.
+Verificar: revisão. Nenhuma função que valida **entrada de requisição** retorna `T | null` ou lança para sinalizar entrada inválida.
+Exceção: `loadConfig` (TS-22) **deve** lançar. Config inválida precisa derrubar a Function no startup (fail-fast), e não virar um resultado a ser tratado.
 
 **TS-12 — MUST** declarar o tipo de retorno de toda função exportada de `src/shared/` e de todo validador. Factories (`createXHandler`) podem inferir o retorno quando a função interna já está anotada.
 Verificar: revisão.
@@ -88,8 +89,8 @@ Verificar: para cada `XSchema` exportado existe `export type X = z.infer<typeof 
 **TS-15 — MUST** usar `.strict()` em todo `z.object` que valida entrada de cliente (corpo HTTP e objetos aninhados). Campo desconhecido é rejeitado, não ignorado em silêncio.
 Verificar: `grep -n "z.object" src/functions/*/validator.ts` e checar que cada ocorrência termina em `.strict()`.
 
-**TS-16 — MUST** usar a API do **Zod 3** importando de `"zod"`. **MUST NOT** importar de `"zod/v4"` nem usar APIs exclusivas do Zod 4 (`z.iso.datetime()`, `z.email()` no nível raiz, `z.strictObject()`, parâmetro `{ error: ... }`).
-Verificar: `grep -rn "zod/v4\|z\.iso\.\|z\.strictObject" src tests` não retorna nada.
+**TS-16 — MUST** usar a API do **Zod 3** importando de `"zod"`. **MUST NOT** importar de `"zod/v4"` nem usar APIs exclusivas do Zod 4 (`z.iso.datetime()`, `z.email()` no nível raiz, parâmetro `{ error: ... }`). Para objeto estrito, use `z.object({...}).strict()`, que é o padrão do projeto (`z.strictObject()` também existe no Zod 3, mas não é usado aqui).
+Verificar: `grep -rn "zod/v4\|z\.iso\.\|z\.email(" src tests` não retorna nada.
 
 **TS-17 — MUST** fazer o narrowing do `ZodIssue` pelo `issue.code` quando o issue tiver campos próprios. Em `unrecognized_keys`, o nome do campo está em `issue.keys`, não em `issue.path`. O formato do `ErrorDetail` produzido é definido em `error-handling`.
 Verificar: teste do validador que envia um campo extra deve verificar `path === "<nome do campo>"`, e não só `message.toContain(...)` (revisão crítica, B3).
@@ -105,7 +106,12 @@ Verificar: todo `z.enum` de domínio tem um comentário apontando a fonte (ex.: 
 ### Dependências e ambiente
 
 **TS-20 — MUST** declarar em `dependencies` todo pacote importado por arquivo de `src/`. `devDependencies` é só para build, teste e tipos (`typescript`, `vitest`, `@types/*`).
-Verificar: `npm run build && npm ci --omit=dev && node -e "import('./dist/src/functions/query/handler.js')"` carrega sem `ERR_MODULE_NOT_FOUND`.
+Verificar (no CI ou numa cópia temporária, **nunca** no checkout de trabalho, porque `--omit=dev` remove `typescript` e `vitest` do `node_modules`):
+```bash
+npm run build && tmp=$(mktemp -d) && cp -r package.json package-lock.json dist "$tmp" \
+  && (cd "$tmp" && npm ci --omit=dev --silent && node -e "import('./dist/src/functions/query/handler.js')")
+```
+Carrega sem `ERR_MODULE_NOT_FOUND`.
 
 **TS-21 — MUST NOT** adicionar dependência quando o Node ou uma dependência já instalada resolve. Ex.: `randomUUID` de `node:crypto` em vez do pacote `uuid`. Toda dependência nova é justificada na descrição do PR.
 Verificar: diff do `package.json` no PR.
@@ -310,7 +316,7 @@ O que um agente (Copilot ou Claude Code) gera **sem esta skill**. Os itens marca
 |---|---|---|---|
 | ★ `zod` (ou outro pacote de runtime) em `devDependencies` | `npm install` e os testes passam localmente | Deploy com `--omit=dev`: `Cannot find module 'zod'` | TS-20 |
 | ★ `moduleResolution: "Bundler"` e imports sem `.js` | O `tsc` compila e o Vitest (via Vite) resolve | O Node ESM não carrega `dist/`, e a Function não sobe no Azure | TS-01, TS-06 |
-| ★ Faltar `@types/node` e o agente "resolver" com `declare const process: any` | Remove o erro de compilação | Esconde o problema e espalha `any` | TS-07, TS-20 |
+| ★ Faltar `@types/node` (`Cannot find name 'process'`) | O código roda no Node, então parece que os tipos "vêm junto" | O `typecheck` falha. A "solução" tentadora é `declare const process: any`, que espalha `any` | TS-07, TS-20 |
 | ★ Mapear `ZodIssue` só por `issue.path` | Funciona para 90% dos erros | Campo extra vira `path: "(body)"`, e o bot não sabe qual campo remover | TS-17 |
 | ★ `body: unknown` no contrato de saída | "Genérico" e compila | Resposta sem `source_documents` passa sem erro de tipo | TS-08 |
 | Mudar `strict` ou `noUncheckedIndexedAccess` para `false` para destravar o build | Some com dezenas de erros de uma vez | Volta o `undefined` em runtime que a opção existia para pegar | TS-06 |
