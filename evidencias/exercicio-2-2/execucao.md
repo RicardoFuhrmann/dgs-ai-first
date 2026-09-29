@@ -52,6 +52,9 @@ HTTP/1.1 404 Not Found
 {"level":30,"time":1790716862313,"service":"novatech-assistant","requestId":"demo-qe01-0001","invocationId":"fc1563c7-4e5f-49b6-9594-000e7e58a114","fn":"query","status":400,"durationMs":0,"invalidFields":["ticket.openedAt"],"msg":"query request completed"}
 ```
 
+Prints: [02-testes-passando.png](02-testes-passando.png) · [03-endpoint-azure-functions.png](03-endpoint-azure-functions.png) (host + `curl` lado a lado).
+
 Observações:
 - Localmente, o host não exige a *function key*, então o `authLevel: "function"` só vale no Azure. O teste unitário verifica que a opção está registrada.
-- Chamada 3: o campo extra `systemPrompt` saiu com `path: "(body)"`. Isso é um defeito real, tratado no item R3 de [revisao-critica.md](revisao-critica.md).
+- Chamada 3: o campo extra `systemPrompt` saiu com `path: "(body)"`. Isso é um defeito real, tratado no item B3 de [revisao-critica.md](revisao-critica.md).
+- O aviso `Process reporting unhealthy ... Unable to create client for AzureWebJobsStorage` no host (print 03) é **esperado**. `AzureWebJobsStorage` está vazio porque não há Azure nesta fase, e um trigger HTTP não depende de storage. Com Azurite (emulador local de storage) o aviso sumiria.
