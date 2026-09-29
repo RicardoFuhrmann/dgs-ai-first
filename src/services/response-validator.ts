@@ -12,7 +12,18 @@ export const MAX_ANSWER_LENGTH = 4000;
 // Guardrail 1: a fonte precisa ser um código de documento da base (docs/novatech/: POL-001,
 // PROC-042, SLA-2024, FAQ-NN). Sem isso, "N/A", "nenhum" ou "documentação interna" passariam
 // como fonte preenchida.
-export const SOURCE_DOCUMENT_PATTERN = /^(POL|PROC|SLA|FAQ)-\d+/;
+// Formato do corpus (data/retrieval-corpus): código do documento + chunk opcional + seção opcional,
+// ex.: "POL-001", "PROC-042v2-B", "FAQ-03", "POL-001 §3.2". Ancorado no fim (review 3.1, R4):
+// sem o "$", "POL-001 inventado pelo modelo" passava.
+// A versão aparece como "PROC-042v2" (id do chunk) e como "PROC-042-v2" (nome do arquivo em docs/novatech).
+const DOCUMENT_CODE = String.raw`(?:POL-\d{3}|PROC-\d{3}(?:-?v\d+)?|SLA-\d{4}|FAQ-\d{2})`;
+export const SOURCE_DOCUMENT_PATTERN = new RegExp(String.raw`^(${DOCUMENT_CODE})(?:-[A-Z])?(?:\s+§\d+(?:\.\d+)*)?$`);
+
+// "PROC-042v2-B §2.1" e "PROC-042-v2 §2" → "PROC-042v2". Fonte citada e chunk recuperado são comparados por documento.
+function documentCodeOf(reference: string): string | null {
+  const code = new RegExp(String.raw`^${DOCUMENT_CODE}`).exec(reference.trim())?.[0];
+  return code ? code.replace(/-v(\d)/, "v$1") : null;
+}
 
 export const AssistantResponseSchema = z
   .object({
@@ -44,6 +55,7 @@ export type RejectionReason =
   | "INVALID_JSON"
   | "SCHEMA_MISMATCH"
   | "SOURCE_DOCUMENT_MISSING"
+  | "SOURCE_DOCUMENT_NOT_RETRIEVED"
   | "DANGEROUS_CARGO_RETURN_AFFIRMED"
   | "DANGEROUS_CARGO_RETURN_DENIAL_MISSING";
 
@@ -51,7 +63,13 @@ export type ResponseValidationResult =
   | { success: true; response: AssistantResponse }
   | { success: false; reason: RejectionReason; response: FallbackResponse };
 
-export type ValidateAssistantResponse = (raw: unknown) => ResponseValidationResult;
+export interface ValidationContext {
+  // Ids dos chunks enviados no prompt (ex.: "POL-001-B"). Quando informado, a fonte citada precisa
+  // ser um desses documentos: "POL-999" tem formato válido mas é alucinação (review 3.1, R3).
+  retrievedSources?: readonly string[];
+}
+
+export type ValidateAssistantResponse = (raw: unknown, context?: ValidationContext) => ResponseValidationResult;
 
 export interface ResponseValidatorDeps {
   logger: Logger;
@@ -59,8 +77,9 @@ export interface ResponseValidatorDeps {
 
 // POL-001 §3.2: classes 1 a 6 da ANTT. O modelo nem sempre usa o termo "carga perigosa";
 // quem pergunta "posso devolver explosivos?" recebe uma resposta que fala em "explosivos".
+// Review 3.1 (R2): faltavam os gases (classe 2) e a menção direta à classe ("carga classe 3").
 const DANGEROUS_CARGO_PATTERN =
-  /\b(perigos[ao]s?|explosiv\w*|inflamave\w*|oxidante\w*|peroxido\w*|toxic[ao]s?|infectante\w*)\b/;
+  /\b(perigos[ao]s?|explosiv\w*|gas|gases|inflamave\w*|oxidante\w*|peroxido\w*|toxic[ao]s?|infectante\w*|classes?\s+[1-6])\b/;
 
 // "devolução", "devoluções", "devolver", "devolvida"... e o vocabulário do procedimento (POL-001 §3.3).
 const RETURN_PATTERN = /\b(devoluc\w*|devolv\w*|(coleta|logistica|frete)\s+revers[ao])\b/;
@@ -76,11 +95,22 @@ const AFFIRMATION_PATTERNS: readonly RegExp[] = [
   /\b(e|sao|esta|estao)\s+(possivel|permitid\w*|elegive\w*|aceit\w*|liberad\w*|autorizad\w*)/g,
   /\b(aceita|aceitamos|aceitam)\s+(a\s+)?devoluc\w*/g,
   /\bautoriz\w*\s+(a\s+)?(devoluc\w*|excec\w*)/g,
+  // Review 3.1 (R1-D): a devolução como sujeito ("a devolução pode ser feita normalmente").
+  /\bdevoluc\w*\s+(pode(m|ra|rao)?|e|sera|sao)\s+(ser\s+)?(feit|realizad|efetuad|aceit|aprovad|processad|autorizad)\w*/g,
+  // Review 3.1 (R1-B): "segue o prazo normal", "segue o processo padrão".
+  /\bsegue\w*\s+(o\s+)?(prazo|processo|fluxo)\s+(normal|padrao|comum)/g,
 ];
 
 // Negativas que não são uma afirmação invertida.
-const EXPLICIT_DENIAL_PATTERN =
-  /\b(inelegive\w*|nao\s+elegive\w*|nao\s+se\s+aplica|vedad[ao]s?|proibid[ao]s?|impossivel)\b/;
+const EXPLICIT_DENIAL_PATTERN = /\b(inelegive\w*|nao\s+elegive\w*|vedad[ao]s?|proibid[ao]s?|impossivel)\b/g;
+
+// Review 3.1 (R1-B): "não se aplica" depende do sujeito. "A devolução / o processo padrão não se aplica"
+// nega; "a exceção não se aplica" libera. Só conta como negativa quando o sujeito é a devolução.
+const RETURN_NOT_APPLICABLE_PATTERN = /\b(devoluc\w*|processo\s+padrao)\b[^.]*?\bnao\s+se\s+aplica/;
+const EXCEPTION_NOT_APPLICABLE_PATTERN = /\bexcec\w*\b[^.]*?\bnao\s+se\s+aplica/;
+
+// Review 3.1 (R1-A): a própria negativa pode estar negada ("não é proibido", "não é impossível").
+const NEGATED_DENIAL_PREFIX = /\b(nao|nem|nunca|jamais)\s+(e|sao|esta|estao|seria|sera|foi)?\s*$/;
 
 // O "não" precisa estar colado na afirmação (no máximo um pronome no meio: "não se pode").
 // Uma janela de palavras livres aceitaria "Não há problema: pode ser devolvida" como negativa.
@@ -127,9 +157,17 @@ function returnStatements(sentence: string): { affirmed: boolean; denied: boolea
   const negated = AFFIRMATION_PATTERNS.flatMap((pattern) =>
     [...sentence.matchAll(pattern)].map((match) => isNegated(sentence, match.index ?? 0)),
   );
+  const denials = [...sentence.matchAll(EXPLICIT_DENIAL_PATTERN)].map((match) =>
+    NEGATED_DENIAL_PREFIX.test(sentence.slice(0, match.index ?? 0)),
+  );
+  const exceptionLifted = EXCEPTION_NOT_APPLICABLE_PATTERN.test(sentence);
   return {
-    affirmed: negated.includes(false),
-    denied: negated.includes(true) || EXPLICIT_DENIAL_PATTERN.test(sentence),
+    // Uma negativa negada ("não é proibido devolver") e uma exceção afastada são afirmações.
+    affirmed: negated.includes(false) || denials.includes(true) || exceptionLifted,
+    denied:
+      negated.includes(true) ||
+      denials.includes(false) ||
+      (!exceptionLifted && RETURN_NOT_APPLICABLE_PATTERN.test(sentence)),
   };
 }
 
@@ -171,7 +209,7 @@ export function createResponseValidator(deps: ResponseValidatorDeps): ValidateAs
     return { success: false, reason, response: SAFE_FALLBACK_RESPONSE };
   };
 
-  return function validateAssistantResponse(raw: unknown): ResponseValidationResult {
+  return function validateAssistantResponse(raw: unknown, context: ValidationContext = {}): ResponseValidationResult {
     const parsed = parseIfString(raw);
     if (!parsed.success) return reject("INVALID_JSON");
 
@@ -181,6 +219,14 @@ export function createResponseValidator(deps: ResponseValidatorDeps): ValidateAs
       const invalidFields = issuePaths(result.error.issues);
       const reason = invalidFields.includes("source_document") ? "SOURCE_DOCUMENT_MISSING" : "SCHEMA_MISMATCH";
       return reject(reason, { invalidFields });
+    }
+
+    if (context.retrievedSources) {
+      const cited = documentCodeOf(result.data.source_document);
+      const retrieved = new Set(context.retrievedSources.map(documentCodeOf));
+      if (!cited || !retrieved.has(cited)) {
+        return reject("SOURCE_DOCUMENT_NOT_RETRIEVED", { sourceDocument: result.data.source_document });
+      }
     }
 
     const dangerousCargoViolation = checkDangerousCargoReturn(result.data.answer);
